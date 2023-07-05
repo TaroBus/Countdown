@@ -57,8 +57,8 @@ class Particle:
 
 
 # Load and play the background music
-countdown_music = pygame.mixer.Sound("countdown.wav")
-birthday_music = pygame.mixer.Sound("song.mp3")
+countdown_music = pygame.mixer.Sound("sound/countdown.wav")
+birthday_music = pygame.mixer.Sound("sound/song.mp3")
 countdown_music.play(-1)
 
 # Game loop
