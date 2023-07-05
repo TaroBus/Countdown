@@ -6,6 +6,7 @@ from datetime import datetime
 # Initialize Pygame
 pygame.init()
 pygame.mixer.init()
+pygame.font.init()
 
 # Set up the window
 window_width, window_height = 800, 600
@@ -13,7 +14,7 @@ window = pygame.display.set_mode((window_width, window_height))
 pygame.display.set_caption("Happy Birthday")
 
 # Set up fonts
-font = pygame.font.Font(None, 100)
+font = pygame.font.SysFont("Inter", 100)
 
 # Set up colors
 black = pygame.Color(0, 0, 0)
