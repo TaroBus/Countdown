@@ -21,7 +21,7 @@ white = pygame.Color(255, 255, 255)
 firework_colors = [(255, 0, 0), (255, 165, 0), (255, 255, 0), (0, 128, 0), (0, 0, 255), (75, 0, 130), (238, 130, 238)]
 
 # Set up the target date and time
-target_date = datetime(2023, 7, 1, 0, 0, 0)
+target_date = datetime(2023, 7, 17, 0, 0, 0)
 
 # Firework variables
 fireworks = []
