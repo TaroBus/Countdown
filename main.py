@@ -58,8 +58,8 @@ class Particle:
 
 
 # Load and play the background music
-countdown_music = pygame.mixer.Sound("sound/countdown.wav")
-birthday_music = pygame.mixer.Sound("sound/song.mp3")
+countdown_music = pygame.mixer.Sound("Sound/countdown.wav")
+birthday_music = pygame.mixer.Sound("Sound/song.mp3")
 countdown_music.play(-1)
 
 # Game loop
@@ -69,6 +69,10 @@ while True:
         if event.type == pygame.QUIT:
             pygame.quit()
             sys.exit()
+        elif event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_ESCAPE:
+                pygame.quit()
+                sys.exit()
 
     # Calculate the remaining time
     current_time = datetime.now()
