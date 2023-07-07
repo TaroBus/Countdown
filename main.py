@@ -273,6 +273,7 @@ while True:
             # Check if it's past midnight to update the target date for the next year
             if datetime.now().date() >= target_date.date():
                 target_date = datetime(target_date.year + 1, 7, 6, 0, 0, 0)
+
     else:
         # Render the remaining time on the window
         text = font.render(f"{days:02d}:{hours:02d}:{minutes:02d}:{seconds:02d}", True, white)
