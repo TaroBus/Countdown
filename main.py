@@ -2,6 +2,7 @@ import pygame
 import sys
 import random
 import math
+import json
 from datetime import datetime, timedelta
 
 # Initialize Pygame
@@ -21,21 +22,35 @@ font = pygame.font.SysFont("Inter", 100)
 black = pygame.Color(0, 0, 0)
 white = pygame.Color(255, 255, 255)
 green = pygame.Color(0, 255, 0)
-firework_colors = [(255, 0, 0), (255, 165, 0), (255, 255, 0), (0, 128, 0), (0, 0, 255), (75, 0, 130), (238, 130, 238)]
 
-# Set up the target date and time
-target_month = 7
-target_day = 17
+# Open json file and take the date
+with open("preset.json", "r") as json_file:
+    data = json.load(json_file)
+    target_month, target_day = data["Month"], data["Day"]
+
+# Take data and create the target date, if it's past the current date sets it to next year
 target_date = datetime(datetime.now().year, target_month, target_day, 0, 0, 0)
+if target_date < datetime.now():
+    target_date = datetime(datetime.now().year + 1, target_month, target_day, 0, 0, 0)
+temp_date = target_date
+date_change = False
 
 # Firework variables
 fireworks = []
 explosions = []
+boom = False
 
 # Birthday message duration
 birthday_duration = timedelta(hours=24)
 birthday_start_time = None
 birthday_over = False
+
+# Load and play the background music
+countdown_music = pygame.mixer.Sound("Sound/countdown.wav")
+birthday_music = pygame.mixer.Sound("Sound/song.mp3")
+countdown_music.set_volume(0.5)
+birthday_music.set_volume(0.4)
+countdown_music.play(-1)
 
 
 def draw_checkmark(surface, position):
@@ -116,6 +131,7 @@ def month_day_menu():
                         finalized_month = True
                 # day selection
                 elif finalized_month and not finalized_day:
+                    # Depending on the month limits the day selection
                     if 0 < len(selected_day) <= 2:
                         max_day = 31
                         if int(selected_month) in [4, 6, 9, 11]:
@@ -124,12 +140,11 @@ def month_day_menu():
                             leap_year = ((int(datetime.now().year) % 4 == 0 and int(datetime.now().year) % 100 != 0) or
                                          int(datetime.now().year) % 400 == 0)
                             max_day = 29 if leap_year else 28
-
+                    # Type out the desired day
                     if pygame.K_0 <= case.key <= pygame.K_9:
                         new_day = selected_day + pygame.key.name(case.key)
                         if 1 <= int(new_day) <= max_day:
                             selected_day = new_day
-
                     elif case.key == pygame.K_BACKSPACE:
                         selected_day = selected_day[:-1]
                     # Press enter to finalize the day selection
@@ -140,8 +155,7 @@ def month_day_menu():
                 elif finalized_month and finalized_day:
                     if case.key == pygame.K_RETURN:
                         enter_pressed = True
-
-                # Remove the month or day by pressing Backspace
+                # Remove the secured month or day by pressing Backspace
                 if event.key == pygame.K_BACKSPACE:
                     if finalized_day:
                         finalized_day = False
@@ -153,28 +167,30 @@ def month_day_menu():
 
 # Particle class
 class Particle:
-    def __init__(self, x, y, c):
+    def __init__(self, x, y):
         self.x = x
         self.y = y
-        self.color = c
+        self.base_color = tuple(random.randint(0, 255) for _ in range(3))
+        self.color = self.base_color
         self.speed = random.uniform(0.5, 2.0)
-        self.angle = random.uniform(0, 2 * math.pi)
+        self.angle = random.uniform(0, 2 * math.pi - 0.1)
         self.vx = math.cos(self.angle) * self.speed
         self.vy = math.sin(self.angle) * self.speed
-        self.lifetime = random.randint(80, 120)
+        self.lifetime = random.randint(50, 100)
         self.alpha = random.uniform(250.0, 255.0)
-        self.color_with_alpha = self.color + (self.alpha,)
 
     def update(self):
-        self.vy += 0.1
+        gravity = 0.1
+        self.vy += gravity
         self.x += self.vx
         self.y += self.vy
         self.lifetime -= 1
-        self.alpha = int((self.lifetime / 120) * 255)
 
     def draw(self):
-        self.color_with_alpha = self.color + (self.alpha,)
-        pygame.draw.circle(window, self.color_with_alpha, (int(self.x), int(self.y)), 2)
+        light_factor = 0.3  # Adjust the light intensity as needed
+        light_color = tuple(int(c + (255 - c) * light_factor) for c in self.base_color)
+        self.color = light_color + (self.alpha,)
+        pygame.draw.circle(window, self.color, (int(self.x), int(self.y)), random.randint(1, 4))
 
 
 def switch_track(stop_song, start_song):
@@ -183,33 +199,50 @@ def switch_track(stop_song, start_song):
         start_song.play(-1)
 
 
-# Load and play the background music
-countdown_music = pygame.mixer.Sound("Sound/countdown.wav")
-birthday_music = pygame.mixer.Sound("Sound/song.mp3")
-countdown_music.set_volume(0.5)
-birthday_music.set_volume(0.4)
-countdown_music.play(-1)
-
 # Game loop
 while True:
     # Event handling
     for event in pygame.event.get():
-        if event.type == pygame.QUIT:
+        if event.type == pygame.QUIT or (event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE):
             pygame.quit()
             sys.exit()
         elif event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_ESCAPE:
-                pygame.quit()
-                sys.exit()
-            elif event.key == pygame.K_TAB:
+            if event.key == pygame.K_TAB:
                 countdown_music.stop()
                 birthday_music.stop()
+                fireworks = []
+                explosions = []
                 # Open the menu for updating target date
                 target_month, target_day = month_day_menu()
                 target_date = datetime(datetime.now().year, target_month, target_day, 0, 0, 0)
+                # If the date already passed makes it set to next year
+                if target_date < datetime.now():
+                    target_date = datetime(datetime.now().year + 1, target_month, target_day, 0, 0, 0)
+                # Saves the selected month and date
+                with open('preset.json', 'r+') as json_file:
+                    data = json.load(json_file)
+                    data["Month"] = target_month
+                    data["Day"] = target_day
+                    json_file.seek(0)
+                    json_file.truncate()
+                    json.dump(data, json_file)
+
                 if not pygame.mixer.get_busy():
                     countdown_music.play(-1)
-
+            # Debug
+            elif event.key == pygame.K_EQUALS:
+                if date_change:
+                    temp_date = target_date
+                    target_date = datetime.now()
+                    date_change = False
+                    switch_track(countdown_music, birthday_music)
+                else:
+                    target_date = temp_date
+                    date_change = True
+                    switch_track(birthday_music, countdown_music)
+                    fireworks = []
+                    explosions = []
+                    birthday_start_time = None
     # Calculate the remaining time for countdown
     current_time = datetime.now()
     if current_time > target_date and birthday_over:
@@ -223,17 +256,19 @@ while True:
 
     # Update and draw fireworks
     for firework in fireworks:
-        color = random.choice(firework_colors)  # Randomly select a color from the list
-        pygame.draw.circle(window, color, firework[:2], firework[2])
+        pygame.draw.circle(window, tuple(random.randint(0, 255) for _ in range(3)), firework[:2], firework[2])
         firework[1] -= 6  # Move fireworks
 
+        if firework[1] <= 100 and random.randint(1, 20) == 1:
+            boom = True
         # Check if firework explodes
-        if firework[1] + firework[2] <= 0:
+        if firework[1] + firework[2] <= 0 or boom:
             # Create explosion particles
-            for i in range(100):
-                particle = Particle(firework[0], firework[1], random.choice(firework_colors))
+            for i in range(random.randint(60, 80)):
+                particle = Particle(firework[0], firework[1])
                 explosions.append(particle)
             fireworks.remove(firework)
+            boom = False
 
     # Update and draw explosion particles
     for particle in explosions:
@@ -249,13 +284,14 @@ while True:
         switch_track(countdown_music, birthday_music)
         birthday_over = False
 
-        # Render the "Happy Birthday" message on the window
+        # Render the birthday message
         text = font.render("Happy Birthday!", True, white)
         text_rect = text.get_rect(center=(window_width // 2, window_height // 2))
         window.blit(text, text_rect)
-        # Create fireworks periodically
-        if len(fireworks) < 200 and pygame.time.get_ticks() % 15 == 0:
-            fireworks.append([random.randint(0, window_width), window_height, random.randint(2, 8)])
+
+        # Create fireworks
+        if len(fireworks) < 200 and pygame.time.get_ticks() % 20 == 0:
+            fireworks.append([random.randint(0, window_width), window_height, random.randint(1, 4)])
 
         # Start the birthday message duration
         if birthday_start_time is None:
@@ -273,7 +309,6 @@ while True:
             # Check if it's past midnight to update the target date for the next year
             if datetime.now().date() >= target_date.date():
                 target_date = datetime(target_date.year + 1, 7, 6, 0, 0, 0)
-
     else:
         # Render the remaining time on the window
         text = font.render(f"{days:02d}:{hours:02d}:{minutes:02d}:{seconds:02d}", True, white)
