@@ -30,8 +30,10 @@ with open("preset.json", "r") as json_file:
 
 # Take data and create the target date, if it's past the current date sets it to next year
 target_date = datetime(datetime.now().year, target_month, target_day, 0, 0, 0)
-if target_date < datetime.now():
+# Check if the time difference is within 24 hours
+if not datetime.now().month == target_month and datetime.now().day == target_day:
     target_date = datetime(datetime.now().year + 1, target_month, target_day, 0, 0, 0)
+
 temp_date = target_date
 date_change = False
 
@@ -218,6 +220,8 @@ while True:
                 # If the date already passed makes it set to next year
                 if target_date < datetime.now():
                     target_date = datetime(datetime.now().year + 1, target_month, target_day, 0, 0, 0)
+                if datetime.now().month == target_month and datetime.now().day == target_day:
+                    target_date = datetime(datetime.now().year, target_month, target_day, 0, 0, 0)
                 # Saves the selected month and date
                 with open('preset.json', 'r+') as json_file:
                     data = json.load(json_file)
